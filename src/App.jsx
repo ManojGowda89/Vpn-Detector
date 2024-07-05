@@ -14,8 +14,8 @@ export default function App() {
   async function callIP() {
     try {
       const ip = await Getip();
-      if (ip === localStorage.getItem("ip")) {
-        setInfo(JSON.parse(localStorage.getItem("data")));
+      if (ip === sessionStorage.getItem("ip")) {
+        setInfo(JSON.parse(sessionStorage.getItem("data")));
         console.log("local call")
         return;
       }
@@ -54,7 +54,7 @@ export default function App() {
               usingVPN,
             };
 
-            localStorage.setItem("data", JSON.stringify(newInfo));
+            sessionStorage.setItem("data", JSON.stringify(newInfo));
            
             setInfo(newInfo);
           },
@@ -75,7 +75,7 @@ export default function App() {
             };
 
             setInfo(newInfo);
-            localStorage.setItem("data", JSON.stringify(newInfo));
+            sessionStorage.setItem("data", JSON.stringify(newInfo));
           
           }
         );
@@ -96,7 +96,7 @@ export default function App() {
         };
 
         setInfo(newInfo);
-        localStorage.setItem("data", JSON.stringify(newInfo));
+        sessionStorage.setItem("data", JSON.stringify(newInfo));
     
       }
     } catch (error) {
@@ -107,7 +107,7 @@ export default function App() {
   return (
     <div className="App">
       <h1>IP Information</h1>
-      {localStorage.getItem("data") ? (
+      {sessionStorage.getItem("data") ? (
         <>
           <p>IP: {info.ip}</p>
           <p>ISP: {info.isp}</p>
