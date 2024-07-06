@@ -1,0 +1,51 @@
+/* Loader.css */
+
+.loading {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.8); /* Semi-transparent white background */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000; /* Ensure loader is on top of other content */
+  }
+  
+  .loading__container {
+    width: 80px; /* Adjust size of loader container */
+    height: 80px; /* Adjust size of loader container */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .loading__container__circle {
+    width: 60px; /* Adjust size of circle */
+    height: 60px; /* Adjust size of circle */
+    border-radius: 50%;
+    border: 4px solid #333; /* Border color and thickness */
+    border-top-color: transparent; /* Make the top of the circle transparent to create spinner effect */
+    animation: spin 1s linear infinite; /* Animation for spinning effect */
+  }
+  
+  .loading__container__circle__inner {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #333; /* Text color */
+    font-weight: bold;
+  }
+  
+  @keyframes spin {
+    0% {
+      transform: rotate(0deg); /* Start position of spinner */
+    }
+    100% {
+      transform: rotate(360deg); /* End position of spinner */
+    }
+  }
+  

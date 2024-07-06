@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "./App.css";
+import './Loding.css';
 import Getip from "./data/Getip";
 import GetIpData from "./data/GetIpData";
 import { draft } from "./data/draftData";
@@ -10,10 +11,11 @@ export default function App() {
   const [fullData, setFullData] = useState(null);
   const [usingVpn, setUsingVpn] = useState(false);
   const [connectionType, setConnectionType] = useState("");
-
+const [loding,setloding]=useState(false)
   useEffect(() => {
     async function fetchData() {
       try {
+        setloding(true)
         const storedIP = sessionStorage.getItem("ip");
         const storedData = sessionStorage.getItem("data");
         const storedUsingVpn = sessionStorage.getItem("usingVpn");
@@ -51,6 +53,9 @@ export default function App() {
 
       } catch (error) {
         console.error("Error fetching IP or location data", error);
+      }finally{
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        setloding(false)
       }
     }
 
@@ -81,7 +86,20 @@ export default function App() {
     }
     return null;
   };
-
+    if(loding){
+      return( <dev className="App">
+    
+        <div className="loading__container">
+          <div className="loading__container__circle">
+            <div className="loading__container__circle__inner">
+             
+            </div>
+            
+          </div>
+          <h1>Loding...</h1>
+        </div>
+     </dev>)
+    }
   return(
     <div className="App"> 
     <Display fullData={fullData} connectionType={connectionType} handleWiFiDisconnect={handleWiFiDisconnect} usingVpn={usingVpn} />
