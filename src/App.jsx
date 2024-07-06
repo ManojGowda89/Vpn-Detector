@@ -1,132 +1,90 @@
-import { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./App.css";
-import Getip from "./data/Getip.jsx";
-import GetIpData from "./data/GetIpData.jsx";
-import { draft } from "./data/draftData.jsx";
-
+import Getip from "./data/Getip";
+import GetIpData from "./data/GetIpData";
+import { draft } from "./data/draftData";
+import { getLocation } from "./data/Getlocation";
+import Display from "./Display/Display";
 export default function App() {
   const [info, setInfo] = useState(draft);
+  const [fullData, setFullData] = useState(null);
+  const [usingVpn, setUsingVpn] = useState(false);
+  const [connectionType, setConnectionType] = useState("");
 
   useEffect(() => {
-    callIP();
+    async function fetchData() {
+      try {
+        const storedIP = sessionStorage.getItem("ip");
+        const storedData = sessionStorage.getItem("data");
+        const storedUsingVpn = sessionStorage.getItem("usingVpn");
+        const storedConnectionType = sessionStorage.getItem("connectionType");
+
+        const ip = await Getip();
+        if (ip === storedIP ) {
+          console.log("Same IP");
+          const parsedData = JSON.parse(storedData);
+          setFullData(parsedData);
+          setUsingVpn(storedUsingVpn === "true");
+          setConnectionType(storedConnectionType || "Unknown");
+          return;
+        }
+
+        const data = await GetIpData(ip);
+        const locationData = await getLocation();
+
+        setFullData({
+          data,
+          locationData
+        });
+
+        sessionStorage.setItem("ip", ip);
+        sessionStorage.setItem("data", JSON.stringify({ data, locationData }));
+        
+        const newUsingVpn = checkVpn(data.latitude, data.longitude, locationData.latitude, locationData.longitude);
+        setUsingVpn(newUsingVpn);
+
+        const newConnectionType = getConnectionType();
+        setConnectionType(newConnectionType);
+        
+        sessionStorage.setItem("usingVpn", newUsingVpn.toString());
+        sessionStorage.setItem("connectionType", newConnectionType);
+
+      } catch (error) {
+        console.error("Error fetching IP or location data", error);
+      }
+    }
+
+    fetchData();
   }, []);
 
-  async function callIP() {
-    try {
-      const ip = await Getip();
-      if (ip === sessionStorage.getItem("ip")) {
-        setInfo(JSON.parse(sessionStorage.getItem("data")));
-        console.log("local call")
-        return;
-      }
+  const checkVpn = (latitude1, longitude1, latitude2, longitude2) => {
+    // Compare latitude and longitude with a tolerance level of 1 degree
+    const latitudeDiff = Math.abs(latitude1 - latitude2);
+    const longitudeDiff = Math.abs(longitude1 - longitude2);
 
-      const {
-        isp,
-        country_name: country,
-        state_prov: region,
-        city,
-        country_code2: country_code,
-        latitude: geolocationLat,
-        longitude: geolocationLong,
-      } = await GetIpData(ip);
-
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            const { latitude: browserLat, longitude: browserLong } =
-              position.coords;
-
-            const usingVPN =
-              Math.abs(geolocationLat - browserLat) > 0.1 ||
-              Math.abs(geolocationLong - browserLong) > 0.1;
-
-            const newInfo = {
-              ip,
-              isp,
-              country,
-              region,
-              city,
-              country_code,
-              geolocationLat,
-              geolocationLong,
-              browserLat,
-              browserLong,
-              usingVPN,
-            };
-
-            sessionStorage.setItem("data", JSON.stringify(newInfo));
-           
-            setInfo(newInfo);
-          },
-          (error) => {
-            console.error("Error obtaining geolocation:", error);
-            const newInfo = {
-              ip,
-              isp,
-              country,
-              region,
-              city,
-              country_code,
-              geolocationLat,
-              geolocationLong,
-              browserLat: "Unavailable",
-              browserLong: "Unavailable",
-              usingVPN: "Unable to determine",
-            };
-
-            setInfo(newInfo);
-            sessionStorage.setItem("data", JSON.stringify(newInfo));
-          
-          }
-        );
-      } else {
-        console.error("Geolocation is not supported by this browser.");
-        const newInfo = {
-          ip,
-          isp,
-          country,
-          region,
-          city,
-          country_code,
-          geolocationLat,
-          geolocationLong,
-          browserLat: "Unsupported",
-          browserLong: "Unsupported",
-          usingVPN: "Unable to determine",
-        };
-
-        setInfo(newInfo);
-        sessionStorage.setItem("data", JSON.stringify(newInfo));
-    
-      }
-    } catch (error) {
-      console.error(error);
+    // If latitude difference is less than 1 degree and longitude difference is less than 1 degree
+    if (latitudeDiff < 1 && longitudeDiff < 1) {
+      return false; // Not using VPN
+    } else {
+      return true; // Using VPN
     }
-  }
+  };
 
-  return (
-    <div className="App">
-      <h1>IP Information</h1>
-      {sessionStorage.getItem("data") ? (
-        <>
-          <p>IP: {info.ip}</p>
-          <p>ISP: {info.isp}</p>
-          <p>Country: {info.country}</p>
-          <p>Region: {info.region}</p>
-          <p>City: {info.city}</p>
-          {/* <p>Country Code: {info.country_code}</p>
-          <p>Geolocation Latitude: {info.geolocationLat}</p>
-          <p>Geolocation Longitude: {info.geolocationLong}</p>
-          <p>Browser Latitude: {info.browserLat}</p>
-          <p>Browser Longitude: {info.browserLong}</p> */}
-          <p>
-            Using VPN:{" "}
-            {info.usingVPN === null ? "Checking..." : info.usingVPN ? "Yes" : "No"}
-          </p>
-        </>
-      ) : (
-        <p>Loading...</p>
-      )}
+  const getConnectionType = () => {
+    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    return connection ? connection.effectiveType : "Unknown";
+  };
+
+  const handleWiFiDisconnect = () => {
+    if (connectionType.toLowerCase() === "wifi") {
+      return <p>Please disconnect WiFi.</p>;
+    }
+    return null;
+  };
+
+  return(
+    <div className="App"> 
+    <Display fullData={fullData} connectionType={connectionType} handleWiFiDisconnect={handleWiFiDisconnect} usingVpn={usingVpn} />
     </div>
-  );
+  )
 }
