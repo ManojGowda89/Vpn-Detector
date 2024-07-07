@@ -1,108 +1,51 @@
-import React, { useState, useEffect } from "react";
 import "./App.css";
-import './Loding.css';
-import Getip from "./data/Getip";
-import GetIpData from "./data/GetIpData";
-import { draft } from "./data/draftData";
-import { getLocation } from "./data/Getlocation";
-import Display from "./Display/Display";
+import "./Loding.css";
+import { useEffect, useState } from "react";
+import VpnCheck from "mb64-vpn-detect";
+
 export default function App() {
-  const [info, setInfo] = useState(draft);
-  const [fullData, setFullData] = useState(null);
-  const [usingVpn, setUsingVpn] = useState(false);
-  const [connectionType, setConnectionType] = useState("");
-const [loding,setloding]=useState(false)
+  const [loding, setLoding] = useState(false);
+  const [fullData, setFullData] = useState();
+
   useEffect(() => {
-    async function fetchData() {
-      try {
-        setloding(true)
-        const storedIP = sessionStorage.getItem("ip");
-        const storedData = sessionStorage.getItem("data");
-        const storedUsingVpn = sessionStorage.getItem("usingVpn");
-        const storedConnectionType = sessionStorage.getItem("connectionType");
-
-        const ip = await Getip();
-        if (ip === storedIP ) {
-          console.log("Same IP");
-          const parsedData = JSON.parse(storedData);
-          setFullData(parsedData);
-          setUsingVpn(storedUsingVpn === "true");
-          setConnectionType(storedConnectionType || "Unknown");
-          return;
-        }
-
-        const data = await GetIpData(ip);
-        const locationData = await getLocation();
-
-        setFullData({
-          data,
-          locationData
-        });
-
-        sessionStorage.setItem("ip", ip);
-        sessionStorage.setItem("data", JSON.stringify({ data, locationData }));
-        
-        const newUsingVpn = checkVpn(data.latitude, data.longitude, locationData.latitude, locationData.longitude);
-        setUsingVpn(newUsingVpn);
-
-        const newConnectionType = getConnectionType();
-        setConnectionType(newConnectionType);
-        
-        sessionStorage.setItem("usingVpn", newUsingVpn.toString());
-        sessionStorage.setItem("connectionType", newConnectionType);
-
-      } catch (error) {
-        console.error("Error fetching IP or location data", error);
-      }finally{
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setloding(false)
+    setLoding(true);
+    async function CallThis() {
+      const data = await VpnCheck("Manoj@2002");
+      if (data) {
+        setFullData(data);
+        setLoding(false);
       }
     }
-
-    fetchData();
+    CallThis();
   }, []);
 
-  const checkVpn = (latitude1, longitude1, latitude2, longitude2) => {
-    // Compare latitude and longitude with a tolerance level of 1 degree
-    const latitudeDiff = Math.abs(latitude1 - latitude2);
-    const longitudeDiff = Math.abs(longitude1 - longitude2);
-
-    // If latitude difference is less than 1 degree and longitude difference is less than 1 degree
-    if (latitudeDiff < 1 && longitudeDiff < 1) {
-      return false; // Not using VPN
-    } else {
-      return true; // Using VPN
-    }
-  };
-
-  const getConnectionType = () => {
-    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-    return connection ? connection.effectiveType : "Unknown";
-  };
-
-  const handleWiFiDisconnect = () => {
-    if (connectionType.toLowerCase() === "wifi") {
-      return <p>Please disconnect WiFi.</p>;
-    }
-    return null;
-  };
-    if(loding){
-      return( <dev className="App">
-    
+  if (loding) {
+    return (
+      <div className="App">
         <div className="loading__container">
           <div className="loading__container__circle">
-            <div className="loading__container__circle__inner">
-             
-            </div>
-            
+            <div className="loading__container__circle__inner"></div>
           </div>
-          <h1>Loding...</h1>
+          <h1>Loading...</h1>
         </div>
-     </dev>)
-    }
-  return(
-    <div className="App"> 
-    <Display fullData={fullData} connectionType={connectionType} handleWiFiDisconnect={handleWiFiDisconnect} usingVpn={usingVpn} />
+      </div>
+    );
+  }
+  return (
+    <div className="App">
+      {fullData && (
+        <div>
+          <h2>Full Data</h2>
+          <div>
+            <h3>IP: {fullData?.data?.ip}</h3>
+            <h3>Continent: {fullData?.data?.continent} ({fullData?.data?.continent})</h3>
+            <h3>Country: {fullData.data.country} ({fullData.data.country})</h3>
+            <h3>ISP: {fullData?.data?.isp}</h3>
+            <h3>Currency: {fullData?.data?.currency}</h3>
+            {fullData?.status ? <h3>Using VPN</h3> : <h3>Not Using VPN</h3>}
+          </div>
+        </div>
+      )}
     </div>
-  )
+  );
 }
